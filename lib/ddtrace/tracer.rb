@@ -24,6 +24,7 @@ module Datadog
     attr_writer :default_service
 
     ALLOWED_SPAN_OPTIONS = [:service, :resource, :span_type].freeze
+    DEFAULT_ON_ERROR = proc { |span, error| span.set_error(error) unless span.nil? }
 
     # Global, memoized, lazy initialized instance of a logger that is used within the the Datadog
     # namespace. This logger outputs to +STDOUT+ by default, and is considered thread-safe.
@@ -292,7 +293,7 @@ module Datadog
         # It's not a problem since we re-raise it afterwards so for example a
         # SignalException::Interrupt would still bubble up.
         rescue Exception => e
-          span.set_error(e)
+          (options[:on_error] || DEFAULT_ON_ERROR).call(span, e)
           raise e
         ensure
           span.finish()
